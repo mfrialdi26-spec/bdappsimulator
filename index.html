@@ -1213,7 +1213,11 @@ function submitKpFormFinal() {
   const reasonVal = document.getElementById('kp-reason-select').value;
 
   if (currentScenarioObj.mode === 'PENDING') {
-    scoreP3 = 85;
+    if (reasonVal !== 'reconsider') {
+      addErrorLog(3, "Salah memilih Remarks pada mode Pending (seharusnya 'Merchant needs to reconsider')", 15);
+      showCustomModal("Remarks Tidak Sesuai!", "⚠️ Untuk merchant yang butuh waktu / belum ada KP (Pending), pilih remarks: <b>Merchant needs to reconsider</b>.", "error");
+      return;
+    }
     currentScenarioObj.bdappStatus = 'PAUSED';
     saveUserScoreRecord();
     showCustomModal("Status BDapp Updated", "✓ Status Merchant di BDapp kini: PAUSED (Pending Follow-up). Data berhasil di-sync!", "success", () => {
@@ -1221,8 +1225,12 @@ function submitKpFormFinal() {
       activeTab = 'my';
       renderApp();
     });
-  } else if (currentScenarioObj.mode === 'REJECT' || reasonVal === 'not_interested') {
-    scoreP3 = 70;
+  } else if (currentScenarioObj.mode === 'REJECT') {
+    if (reasonVal !== 'not_interested') {
+      addErrorLog(3, "Salah memilih Remarks pada mode Reject (seharusnya 'Merchant is not interested in TikTok GO')", 15);
+      showCustomModal("Remarks Tidak Sesuai!", "⚠️ Untuk merchant yang menolak keras (Reject), pilih remarks: <b>Merchant is not interested in TikTok GO</b>.", "error");
+      return;
+    }
     currentScenarioObj.bdappStatus = 'TERMINATED';
     saveUserScoreRecord();
     showCustomModal("Status BDapp Updated", "⚠️ Status Merchant di BDapp kini: TERMINATED (Rejected). Data berhasil di-sync!", "error", () => {
