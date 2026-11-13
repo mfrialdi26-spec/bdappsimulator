@@ -678,6 +678,18 @@ function selectCityCard(cityName) {
     let fetchedRecords = [];
     let radarChartInstance = null;
 
+// State Fitur Create New Lead & FAQ
+let isCreatingLead = false;
+let createLeadStep = 'search_results'; // 'search_results', 'fill_form', 'review_detail'
+let newLeadKeyword = '';
+let newLeadAddress = '';
+let newLeadCategory = '';
+let newLeadPhotoSource = ''; // 'camera' atau 'gallery'
+let newLeadDistrictConfirmed = false;
+let newLeadStatus = 'Under review'; // 'Under review', 'Approved', 'Rejected'
+let newLeadRejectReason = '';
+let selectedLeadRegionFilter = 'Semua Wilayah';
+
     const ktpRealUrl = "https://lh3.googleusercontent.com/ehiG9Usj1GuEZcMX4pRj3Gs1z-L8TbOY7HHmSfT_1MrvsrgvD6GSQjLV5a0XryW86h2NeAoXNyMQfuHsWN4txULvnCwHCLOyAQnXNwOXuFDC1aJzvaoONqrwLHFRgEZclfAzR7O_azSUCh6bjG9B-6aZPuszfVNpq0iurE3H8ah9bVbBQvUzSepnOpGGKngVXlOqGnACJw";
 
 const pitchingScenarios = [
@@ -1352,6 +1364,178 @@ if (!currentScenarioObj) {
     return;
   }
 
+// ==========================================
+  // FITUR: CREATE A NEW LEAD (6 LANGKAH SOP + FAQ)
+  // ==========================================
+  if (isCreatingLead) {
+    phoneBody.className = 'phone-body';
+
+    // LANGKAH 2 & 3: CARI TOKO & PILIH TINDAKAN (SIMULASI DATABASE REALISTIS)
+    if (createLeadStep === 'search_results') {
+      const kw = newLeadKeyword.trim();
+      screen.innerHTML = `
+        <div class="px-3 pt-2 pb-1 flex justify-between items-center text-[10px] font-bold text-slate-700 border-b bg-white">
+          <span>09:30</span>
+          <button onclick="showCreateLeadFaqModal()" class="text-[9px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full font-extrabold cursor-pointer">📖 FAQ & Aturan</button>
+        </div>
+        <div class="p-2.5 border-b flex items-center gap-2 bg-white">
+          <i onclick="isCreatingLead=false; renderApp();" class="fa-solid fa-chevron-left text-xs cursor-pointer"></i>
+          <div class="flex-1 flex items-center bg-slate-100 rounded-lg px-2.5 py-1.5 gap-1.5">
+            <i class="fa-solid fa-magnifying-glass text-slate-400 text-[10px]"></i>
+            <input id="search-lead-input" type="text" value="${newLeadKeyword}" oninput="updateSearchLeadPreview(this.value)" placeholder="Search keywords (cth: Tomoro / nama toko baru)..." class="w-full bg-transparent text-[10px] font-bold focus:outline-none">
+          </div>
+        </div>
+        <div id="search-results-container" class="flex-1 p-3 bg-slate-50 text-left space-y-2.5 overflow-y-auto text-[10px]">
+          ${renderSearchResultsList(kw)}
+        </div>
+        <div class="p-2.5 border-t bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+          <div onclick="startBlankNewLead()" class="p-2.5 bg-white border-2 border-dashed border-amber-500 rounded-xl flex items-center justify-between cursor-pointer hover:bg-amber-50 transition">
+            <div class="flex items-center gap-2">
+              <span class="text-base font-black text-amber-600">+</span>
+              <div>
+                <div class="font-extrabold text-slate-900 text-[11px]">Create a lead: <span id="preview-kw-create" class="text-amber-700">${kw || 'Search keywords'}</span></div>
+                <div class="text-[8px] text-slate-500">Klik di sini jika merchant tidak ditemukan di database</div>
+              </div>
+            </div>
+            <span class="text-amber-600 font-bold">›</span>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    // LANGKAH 4: LENGKAPI & KIRIM FORMULIR LEAD
+    if (createLeadStep === 'fill_form') {
+      screen.innerHTML = `
+        <div class="px-3 pt-2 pb-1 flex justify-between items-center text-[10px] font-bold text-slate-700 border-b bg-white">
+          <span>09:33</span>
+          <button onclick="showCreateLeadFaqModal()" class="text-[9px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full font-extrabold cursor-pointer">📖 FAQ & Aturan</button>
+        </div>
+        <div class="p-2.5 border-b flex items-center justify-between bg-white">
+          <i onclick="createLeadStep='search_results'; renderApp();" class="fa-solid fa-chevron-left text-xs cursor-pointer"></i>
+          <span class="font-extrabold text-xs">Create new lead</span>
+          <span></span>
+        </div>
+        <div class="flex-1 p-3.5 bg-white text-left space-y-3 overflow-y-auto text-[10px]">
+          <div>
+            <label class="font-bold text-slate-700">Lead or store name *</label>
+            <input type="text" value="${newLeadKeyword}" oninput="newLeadKeyword=this.value" class="w-full p-2 border rounded-lg font-bold mt-1 bg-slate-50">
+          </div>
+
+          <div>
+            <label class="font-bold text-slate-700">Store photos * <span class="text-[8px] text-rose-500">(Wajib foto di lokasi)</span></label>
+            ${newLeadPhotoSource === 'camera' ? `
+              <div class="mt-1 relative w-full h-24 rounded-xl overflow-hidden border-2 border-emerald-500">
+                <img src="https://mijil.id/uploads/default/original/2X/f/fed2cfd5c4295c4e61c9c45d65af6f40b9e1b3e4.jpeg" class="w-full h-full object-cover">
+                <span class="absolute bottom-1 right-1 bg-emerald-600 text-white px-2 py-0.5 rounded text-[8px] font-bold">✓ Foto Lokasi Valid</span>
+                <button onclick="newLeadPhotoSource=''; renderApp();" class="absolute top-1 right-1 bg-black/70 text-white px-1.5 py-0.5 rounded text-[8px]">Ulang</button>
+              </div>
+            ` : `
+              <div class="mt-1 grid grid-cols-2 gap-2">
+                <button onclick="newLeadPhotoSource='camera'; renderApp();" class="p-2.5 border-2 border-dashed border-emerald-500 rounded-xl flex flex-col items-center justify-center bg-emerald-50/50 hover:bg-emerald-50 cursor-pointer">
+                  <i class="fa-solid fa-camera text-emerald-600 text-sm"></i>
+                  <span class="text-[8px] font-extrabold text-emerald-800 mt-1">Ambil Foto Lokasi</span>
+                </button>
+                <button onclick="addErrorLog(1, 'Mencoba upload foto toko dari galeri', 10); showCustomModal('Tidak Didukung!', '⚠️ Upload dari galeri foto tidak didukung! Anda wajib mengambil foto langsung di lokasi.', 'error');" class="p-2.5 border border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 cursor-pointer">
+                  <i class="fa-solid fa-images text-slate-500 text-sm"></i>
+                  <span class="text-[8px] font-bold text-slate-500 mt-1">Upload dari Galeri</span>
+                </button>
+              </div>
+            `}
+          </div>
+
+          <div>
+            <label class="font-bold text-slate-700">Category *</label>
+            <select onchange="newLeadCategory=this.value" class="w-full p-2 border rounded-lg font-bold mt-1 bg-slate-50">
+              <option value="">-- Pilih Kategori Merchant --</option>
+              <option value="Restaurant" ${newLeadCategory==='Restaurant'?'selected':''}>Restaurant</option>
+              <option value="Drink" ${newLeadCategory==='Drink'?'selected':''}>Drink</option>
+              <option value="Bakery shop" ${newLeadCategory==='Bakery shop'?'selected':''}>Bakery shop</option>
+              <option value="Dessert shop" ${newLeadCategory==='Dessert shop'?'selected':''}>Dessert shop</option>
+              <option value="Snacks" ${newLeadCategory==='Snacks'?'selected':''}>Snacks</option>
+              <option value="Fast food" ${newLeadCategory==='Fast food'?'selected':''}>Fast food</option>
+            </select>
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center">
+              <label class="font-bold text-slate-700">Address *</label>
+              <span onclick="newLeadAddress='Jl. Raya Jatiwaringin No. 45, Pondok Gede, Bekasi'; renderApp();" class="text-[8px] text-blue-600 font-extrabold underline cursor-pointer">📍 Salin dari Google Maps</span>
+            </div>
+            <textarea rows="2" oninput="newLeadAddress=this.value" placeholder="Masukkan alamat toko secara manual..." class="w-full p-2 border rounded-lg font-bold mt-1 bg-slate-50">${newLeadAddress}</textarea>
+          </div>
+
+          <label class="flex items-start gap-2 p-2 bg-slate-100 rounded-lg cursor-pointer">
+            <input type="checkbox" ${newLeadDistrictConfirmed?'checked':''} onchange="newLeadDistrictConfirmed=this.checked" class="mt-0.5">
+            <span class="text-[9px] text-slate-700 font-semibold leading-tight">Saya konfirmasi toko berada dalam distrik bisnis yang ditetapkan serta nama & alamat sudah benar.</span>
+          </label>
+        </div>
+        <div class="p-3 border-t bg-white">
+          <button onclick="submitNewLeadSop()" class="w-full py-2.5 bg-black text-white font-extrabold text-xs rounded-full shadow cursor-pointer">Create</button>
+        </div>
+      `;
+      return;
+    }
+
+    // LANGKAH 5: PERIKSA HASIL REVIEW
+    if (createLeadStep === 'review_detail') {
+      screen.innerHTML = `
+        <div class="px-3 pt-2 pb-1 flex justify-between items-center text-[10px] font-bold text-slate-700 border-b bg-white"><span>09:45</span><span>📶 4G</span></div>
+        <div class="p-2.5 border-b flex items-center justify-between bg-white">
+          <i onclick="isCreatingLead=false; activeTab='my'; renderApp();" class="fa-solid fa-chevron-left text-xs cursor-pointer"></i>
+          <span class="font-extrabold text-xs">Lead details</span>
+          <span>•••</span>
+        </div>
+        <div class="flex-1 p-3.5 bg-white text-left space-y-3 overflow-y-auto text-[10px]">
+          ${newLeadStatus === 'Under review' ? `
+            <div class="p-2.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 font-bold text-[9px] flex items-center gap-2">
+              <span>⏳</span> <span>Store is under review (Status awal: <b>NO KP</b>)</span>
+            </div>
+          ` : newLeadStatus === 'Rejected' ? `
+            <div class="p-2.5 bg-rose-50 border border-rose-300 rounded-xl text-rose-900 space-y-1.5">
+              <div class="font-extrabold text-[10px] text-rose-700">❌ Lead Rejected</div>
+              <div class="text-[9px]"><b>Alasan Penolakan:</b> ${newLeadRejectReason}</div>
+              <button onclick="createLeadStep='fill_form'; newLeadPhotoSource=''; renderApp();" class="px-3 py-1 bg-rose-600 text-white font-bold rounded-lg text-[9px] cursor-pointer">✏️ Edit & Kirim Ulang</button>
+            </div>
+          ` : `
+            <div class="p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-900 font-bold text-[9px]">
+              ✅ Approved! Lead kini tersedia di <b>My Leads</b>. Lanjutkan langkah onboarding.
+            </div>
+          `}
+
+          <div>
+            <h3 class="font-extrabold text-sm text-slate-900">${newLeadKeyword}</h3>
+            <span class="inline-block mt-1 px-2 py-0.5 bg-slate-100 text-slate-700 text-[9px] font-extrabold rounded">NO KP</span>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="font-extrabold text-slate-900">Basic information</div>
+            <div class="flex justify-between py-1 border-b"><span class="text-slate-400">Category</span><span class="font-bold">${newLeadCategory}</span></div>
+            <div class="flex justify-between py-1 border-b"><span class="text-slate-400">Address</span><span class="font-bold text-right max-w-[180px]">${newLeadAddress}</span></div>
+            <div class="flex justify-between py-1 border-b"><span class="text-slate-400">Lead ID</span><span class="font-bold">2000000644993808516</span></div>
+          </div>
+
+          ${newLeadStatus === 'Under review' ? `
+            <div class="p-2.5 bg-slate-900 text-white rounded-xl space-y-2">
+              <div class="text-[9px] font-bold text-amber-400">Simulasi Notifikasi Hasil Review:</div>
+              <div class="grid grid-cols-2 gap-2">
+                <button onclick="newLeadStatus='Approved'; showCustomModal('Notifikasi Persetujuan', '✅ Lead Anda telah APPROVED dan masuk ke My Leads!', 'success'); renderApp();" class="py-1.5 bg-emerald-600 text-white font-bold rounded-lg text-[9px] cursor-pointer">Simulasi Approved</button>
+                <button onclick="newLeadStatus='Rejected'; newLeadRejectReason='Plang nama toko pada foto kurang jelas / terpotong'; showCustomModal('Notifikasi Penolakan', '❌ Lead ditolak! Buka detail lead untuk melihat alasan & ketuk Edit.', 'error'); renderApp();" class="py-1.5 bg-rose-600 text-white font-bold rounded-lg text-[9px] cursor-pointer">Simulasi Rejected</button>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+        <div class="p-3 border-t bg-white">
+          <button onclick="finishNewLeadSop()" class="w-full py-2.5 ${newLeadStatus==='Approved' ? 'bg-black text-white' : 'bg-slate-200 text-slate-500'} font-extrabold text-xs rounded-full cursor-pointer">
+            ${newLeadStatus==='Approved' ? 'Temukan di My Leads & Lanjut Onboarding' : 'Selesaikan Review Dahulu'}
+          </button>
+        </div>
+      `;
+      return;
+    }
+  }
+
+
   // 3. TAHAP 1: CHECK-IN & LEADS
   if (currentStage === 1) {
     phoneBody.className = 'phone-body';
@@ -1417,8 +1601,8 @@ if (!currentScenarioObj) {
             <i class="fa-solid fa-gear text-slate-700 text-xs"></i>
             <div class="flex items-center gap-3">
               <i class="fa-solid fa-laptop text-slate-700 text-xs"></i>
-              <i class="fa-solid fa-plus text-slate-700 text-xs"></i>
-              <i class="fa-solid fa-magnifying-glass text-slate-700 text-xs"></i>
+              <i onclick="triggerTouch(event, openCreateNewLead)" class="fa-solid fa-plus text-slate-900 bg-amber-400 p-1.5 rounded-full text-xs cursor-pointer shadow hover:bg-amber-300" title="Create a new lead"></i>
+              <i onclick="triggerTouch(event, openCreateNewLead)" class="fa-solid fa-magnifying-glass text-slate-700 text-xs cursor-pointer" title="Search / Create a lead"></i>
             </div>
           </div>
           <div class="px-3 border-b flex gap-6 text-xs font-bold bg-white">
@@ -1426,7 +1610,12 @@ if (!currentScenarioObj) {
             <span onclick="activeTab='my'; renderApp();" class="cursor-pointer pb-1.5 ${activeTab==='my' ? 'text-black border-b-2 border-black' : 'text-slate-400'}">Prospek saya</span>
           </div>
           <div class="flex gap-2 px-3 py-2 overflow-x-auto text-[9px] bg-white border-b">
-            <span class="border px-2.5 py-1 rounded-lg text-slate-700 bg-slate-50 whitespace-nowrap font-bold">Distrik komersial ∨</span>
+            <select onchange="selectedLeadRegionFilter=this.value; renderApp();" class="border px-2 py-1 rounded-lg text-slate-700 bg-slate-50 font-bold focus:outline-none">
+              <option value="Semua Wilayah" ${selectedLeadRegionFilter==='Semua Wilayah'?'selected':''}>Semua Wilayah ∨</option>
+              <option value="Jakarta" ${selectedLeadRegionFilter==='Jakarta'?'selected':''}>Jakarta ∨</option>
+              <option value="Surabaya" ${selectedLeadRegionFilter==='Surabaya'?'selected':''}>Surabaya ∨</option>
+              <option value="Malang" ${selectedLeadRegionFilter==='Malang'?'selected':''}>Malang ∨</option>
+            </select>
             <span class="border px-2.5 py-1 rounded-lg text-slate-700 bg-slate-50 whitespace-nowrap font-bold">${orientationCompleted ? 'Sudah melakukan orientasi ∨' : 'Onboarding priority ∨'}</span>
           </div>
           <div class="flex-1 overflow-y-auto p-2.5 space-y-2.5 bg-slate-100 text-left">
@@ -3554,7 +3743,187 @@ function closeSkillCardModal() {
       }
     }
 
-   document.addEventListener("DOMContentLoaded", function () {
+   function openCreateNewLead() {
+  isCreatingLead = true;
+  createLeadStep = 'search_results';
+  newLeadKeyword = '';
+  newLeadAddress = '';
+  newLeadCategory = '';
+  newLeadPhotoSource = '';
+  newLeadDistrictConfirmed = false;
+  newLeadStatus = 'Under review';
+  renderApp();
+}
+
+const mockDatabaseLeads = [
+  { id: '14578962345', name: 'TOMORO Coffee Blok M Plaza', stores: 10, cat: 'Restaurant', address: 'Blok M Plaza Lt. UG, Kebayoran Baru, Jakarta Selatan', status: 'claimed', owner: 'utari.citra@bytedance.com' },
+  { id: '14578962346', name: 'TOMORO Coffee Tebet Raya', stores: 10, cat: 'Restaurant', address: 'Jl. Tebet Raya No. 42, Jakarta Selatan', status: 'open', owner: '' },
+  { id: '10000376207', name: 'Pak Stafing (Mie Ayam)', stores: 2, cat: 'Light meal', address: 'Jl. Unkris No.3A, Jaticempaka, Pondok Gede, Bekasi', status: 'open', owner: '' },
+  { id: '10000376208', name: 'Bu Dewi (Warung Kopi & Makanan)', stores: 1, cat: 'Drink', address: 'Jl. Raya Jatiwaringin No. 12, Bekasi', status: 'claimed', owner: 'budi.santoso@bytedance.com' },
+  { id: '10000376209', name: 'Koh Ahong (Resto Bebek)', stores: 1, cat: 'Restaurant', address: 'Jl. Kalimalang Raya No. 88, Bekasi', status: 'open', owner: '' }
+];
+
+function renderSearchResultsList(keyword) {
+  const kw = (keyword || '').trim().toLowerCase();
+  const matches = kw === ''
+    ? mockDatabaseLeads.slice(0, 3)
+    : mockDatabaseLeads.filter(item => item.name.toLowerCase().includes(kw));
+
+  if (matches.length === 0) {
+    return `
+      <div class="p-4 bg-amber-50 border border-amber-300 rounded-2xl text-center space-y-2 my-4">
+        <div class="text-2xl">🔍</div>
+        <div class="font-extrabold text-xs text-slate-900">Merchant "${keyword}" tidak ditemukan di database</div>
+        <p class="text-[10px] text-slate-600 leading-relaxed">
+          Data merchant belum terdaftar di sistem BDapp. Silakan klik tombol <b class="text-amber-700">+ Create a lead</b> di bagian paling bawah untuk mendaftarkan merchant baru.
+        </p>
+      </div>
+    `;
+  }
+
+  let html = `<div class="text-[9px] font-bold text-slate-400">Ditemukan ${matches.length} merchant di database${kw ? ` untuk "${keyword}"` : ''}:</div>`;
+
+  matches.forEach(m => {
+    if (m.status === 'claimed') {
+      html += `
+        <div class="p-2.5 bg-white border rounded-xl space-y-1 opacity-90">
+          <div class="flex justify-between items-center text-[8px] text-slate-400 font-mono">
+            <span>ID ${m.id}</span>
+            <span class="text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded">No key person (Claimed)</span>
+          </div>
+          <div class="font-extrabold text-slate-900 text-[11px]">${m.name}</div>
+          <div class="text-[9px] text-slate-500">No. of stores: ${m.stores} | ${m.cat}</div>
+          <div class="text-[9px] text-slate-500 truncate">${m.address}</div>
+          <div class="text-[9px] font-bold text-teal-600 pt-0.5">Claim Owner: ${m.owner}</div>
+          <button onclick="addErrorLog(1, 'Mencoba klaim ulang merchant yang sudah memiliki Claim Owner', 15); showCustomModal('Sudah Diklaim BD Lain!', 'Merchant ini sudah diklaim oleh ${m.owner}. Jangan membuat duplicate lead! Jika merchant tidak ditemukan, klik tombol + Create a lead di bawah.', 'error');" class="mt-1 px-2.5 py-1 bg-slate-100 text-slate-600 rounded text-[9px] font-bold cursor-pointer">Cek Status</button>
+        </div>
+      `;
+    } else {
+      const safeName = m.name.replace(/'/g, "\\'");
+      const safeAddr = m.address.replace(/'/g, "\\'");
+      html += `
+        <div class="p-2.5 bg-white border rounded-xl space-y-1 shadow-sm">
+          <div class="flex justify-between items-center text-[8px] text-slate-400 font-mono">
+            <span>ID ${m.id}</span>
+            <span class="text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">Open leads</span>
+          </div>
+          <div class="font-extrabold text-slate-900 text-[11px]">${m.name}</div>
+          <div class="text-[9px] text-slate-500">No. of stores: ${m.stores} | ${m.cat}</div>
+          <div class="text-[9px] text-slate-500 truncate">${m.address}</div>
+          <div class="flex justify-end gap-1.5 pt-1">
+            <button onclick="selectExistingStoreLead('${safeName}', '${safeAddr}')" class="px-3 py-1 bg-black text-white rounded-full text-[9px] font-bold cursor-pointer">Claim / Pilih</button>
+          </div>
+        </div>
+      `;
+    }
+  });
+
+  return html;
+}
+
+function updateSearchLeadPreview(val) {
+  newLeadKeyword = val;
+  const container = document.getElementById('search-results-container');
+  const createLabel = document.getElementById('preview-kw-create');
+  if (container) container.innerHTML = renderSearchResultsList(val);
+  if (createLabel) createLabel.innerText = val.trim() || 'Search keywords';
+}
+
+function selectExistingStoreLead(storeName, storeAddr) {
+  showCustomModal('Merchant Sudah Ada di Database!', `Merchant "${storeName}" sudah terdaftar di sistem (Open leads). Gunakan data ini tanpa membuat duplikat baru?`, 'confirm', (res) => {
+    if (res) {
+      newLeadKeyword = storeName;
+      newLeadAddress = storeAddr;
+      createLeadStep = 'fill_form';
+      renderApp();
+    }
+  });
+}
+
+function startBlankNewLead() {
+  if (!newLeadKeyword.trim()) {
+    showCustomModal('Ketik Nama Toko Dulu', 'Masukkan nama toko di kolom pencarian atas terlebih dahulu sebelum klik + Create a lead.', 'info');
+    return;
+  }
+  newLeadAddress = '';
+  createLeadStep = 'fill_form';
+  renderApp();
+}
+function submitNewLeadSop() {
+  if (!newLeadKeyword.trim() || newLeadPhotoSource !== 'camera' || !newLeadCategory || !newLeadAddress.trim() || !newLeadDistrictConfirmed) {
+    addErrorLog(1, "Submit Create Lead tidak lengkap / belum konfirmasi distrik", 10);
+    showCustomModal("Form Belum Lengkap", "⚠️ Pastikan Nama Toko, Foto Kamera Lokasi, Kategori, Alamat, dan Centang Konfirmasi Distrik sudah diisi!", "error");
+    return;
+  }
+  newLeadStatus = 'Under review';
+  createLeadStep = 'review_detail';
+  renderApp();
+}
+
+function finishNewLeadSop() {
+  if (newLeadStatus !== 'Approved') {
+    showCustomModal("Belum Approved", "Selesaikan simulasi review hingga berstatus Approved terlebih dahulu.", "info");
+    return;
+  }
+  currentScenarioObj.merchantName = newLeadKeyword;
+  isCreatingLead = false;
+  isClaimed = true;
+  activeTab = 'my';
+  subStep = 1;
+  showCustomModal("Lead Tersedia di My Leads", `✓ "${newLeadKeyword}" sudah muncul di My Leads (Status: NO KP). Silakan lakukan Check-in sebelum Add Key Person!`, "success", () => {
+    renderApp();
+  });
+}
+
+function showCreateLeadFaqModal() {
+  const modal = document.getElementById('custom-app-modal');
+  const titleEl = document.getElementById('modal-title-text');
+  const bodyEl = document.getElementById('modal-body-text');
+  const btnContainer = document.getElementById('modal-btn-container');
+  const iconBox = document.getElementById('modal-icon-container');
+  if (!modal) return;
+
+  modal.children[0].className = "bg-slate-900 border-2 border-slate-700 rounded-3xl p-6 max-w-2xl w-full shadow-2xl text-center space-y-4 animate-fade-in";
+  if (iconBox) {
+    iconBox.className = 'w-12 h-12 rounded-2xl mx-auto flex items-center justify-center text-xl bg-amber-500/20 text-amber-400 border border-amber-500/40';
+    iconBox.innerHTML = '📖';
+  }
+  if (titleEl) titleEl.innerText = "CHEAT SHEET: ATURAN & FAQ CREATE NEW LEAD";
+  if (bodyEl) {
+    bodyEl.innerHTML = `
+      <div class="space-y-3 text-left max-h-[70vh] overflow-y-auto pr-2 text-xs text-slate-300">
+        <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-1">
+          <div class="font-extrabold text-amber-400">1. 🏢 Duplikat, Mall & Foodcourt</div>
+          <p>• <b>Nama Sama = Ditolak:</b> Tidak ada pengecualian jarak. Jika sudah ada di pencarian, wajib klaim yang ada.</p>
+          <p>• <b>Satu Alamat (Mall/Foodcourt):</b> Boleh buat terpisah dengan format <b>"Nama Merek + Nama Cabang"</b> (deteksi duplikat radius &lt; 500m).</p>
+        </div>
+        <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-1">
+          <div class="font-extrabold text-cyan-400">2. 📍 Validasi Alamat & Wilayah</div>
+          <p>• <b>Prioritas Google Maps:</b> Utama pakai alamat Maps, atau ketik manual detail (dilarang copy-paste alamat toko sebelah).</p>
+          <p>• <b>Batas Distrik:</b> Hanya boleh buat lead di distrik komersial sendiri.</p>
+          <p>• <b>Lead Lama Invalid:</b> Jangan buat baru! Edit alamat saat tahap <i>Claim Store</i>.</p>
+        </div>
+        <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-1">
+          <div class="font-extrabold text-emerald-400">3. 📸 Foto, Status Toko & NIB</div>
+          <p>• <b>Tanpa Banner Permanen:</b> Boleh diajukan asal nama toko terlihat jelas dan sesuai POI Name.</p>
+          <p>• <b>Toko Renovasi:</b> Tunggu sampai renovasi selesai & siap buka.</p>
+          <p>• <b>Pakai NIB:</b> Boleh jika tanpa KTP lokal, wajib verifikasi hubungan badan usaha dengan nama resto.</p>
+        </div>
+        <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-1">
+          <div class="font-extrabold text-rose-400">4. ⏱️ Review, Eskalasi & Check-in</div>
+          <p>• <b>Waktu Review:</b> Normalnya ± 10 menit. Jika lewat 10 menit masih <i>Pending</i>, lapor ke grup <b>Field Sales Oncall</b> + Merchant ID.</p>
+          <p>• <b>Wajib Check-in Manual:</b> Setelah <i>Approved</i> masuk ke <i>My Leads</i>, BD tetap wajib Check-in manual di lokasi.</p>
+        </div>
+      </div>
+    `;
+  }
+  if (btnContainer) {
+    btnContainer.innerHTML = `<button onclick="closeAppModal(true)" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-xl cursor-pointer">Paham Aturan Create Lead</button>`;
+  }
+  modal.classList.remove('hidden');
+}
+
+document.addEventListener("DOMContentLoaded", function () {
   populateBatchOptions();
   handlePositionChange('');
 
@@ -3574,131 +3943,84 @@ function closeSkillCardModal() {
 
 
 
-<!-- CUSTOM MODAL UI OVERLAY (WIDE SIZE FOR AUDIT GALLERY) -->
-<div id="custom-app-modal" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-4 z-[300]">
-  <div class="bg-slate-900 border-2 border-slate-700 rounded-3xl p-6 max-w-2xl w-full shadow-2xl text-center space-y-4 animate-fade-in">
-    <div id="modal-icon-container" class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-inner">
-      <!-- Icon injected via JS -->
-    </div>
-    <div>
-      <h3 id="modal-title-text" class="text-base font-extrabold text-white leading-snug">Judul Modal</h3>
-      <div id="modal-body-text" class="text-xs text-slate-300 mt-2 leading-relaxed font-medium">Pesan notifikasi di sini.</div>
-    </div>
-    <div id="modal-btn-container" class="flex gap-2.5 pt-2">
-      <!-- Buttons injected via JS -->
-    </div>
-  </div>
-</div>
-
-<!-- ... KODE-KODE LAIN ATAU MODAL LAIN SEBELUMNYA ... -->
-
-    <!-- ========================================== -->
-    <!-- MODAL SKILL CARD MATRIX EVALUATION (STEP B) -->
-    <!-- ========================================== -->
-    <div id="skill-card-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl p-6 shadow-2xl relative">
-        
-        <!-- HEADER MODAL -->
-        <div class="flex items-start justify-between border-b border-slate-800 pb-4">
-          <div>
-            <h3 class="text-base font-black text-white flex items-center gap-2">
-              💳 OFFICIAL BD SKILL CARD
-            </h3>
-            <p id="sc-modal-name" class="text-sm font-bold text-amber-400 mt-1">-</p>
-            <p id="sc-modal-sub" class="text-xs text-slate-400">-</p>
-          </div>
-          <div class="text-right">
-            <div id="sc-modal-score" class="text-2xl font-black text-emerald-400">0</div>
-            <div id="sc-modal-status" class="mt-1 inline-block">-</div>
-            <button onclick="closeSkillCardModal()" class="block text-slate-500 hover:text-white mt-2 text-xs cursor-pointer ml-auto">✕ Tutup</button>
-          </div>
-        </div>
-
-        <!-- MATRIKS 3 MODE ASSESSMENT -->
-        <div class="mt-4 space-y-2">
-          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Breakdown Performa 3 Mode Assessment</h4>
-          
-          <!-- ROW REJECTED MODE -->
-          <div class="flex items-center justify-between bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl text-xs">
-            <span class="font-bold text-rose-400 w-32">🔴 Rejected Mode</span>
-            <div class="flex gap-4 text-slate-300 font-mono">
-              <span>P1: <b id="sc-rp1" class="text-white">0</b></span>
-              <span>P2: <b id="sc-rp2" class="text-white">0</b></span>
-              <span>P3: <b id="sc-rp3" class="text-white">0</b></span>
-            </div>
-            <span id="sc-avg-r" class="font-black text-rose-400 bg-rose-500/20 px-2 py-0.5 rounded">0 Pts</span>
-          </div>
-
-          <!-- ROW FOLLOW UP MODE -->
-          <div class="flex items-center justify-between bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl text-xs">
-            <span class="font-bold text-amber-400 w-32">🟡 Follow Up Mode</span>
-            <div class="flex gap-4 text-slate-300 font-mono">
-              <span>P1: <b id="sc-fp1" class="text-white">0</b></span>
-              <span>P2: <b id="sc-fp2" class="text-white">0</b></span>
-              <span>P3: <b id="sc-fp3" class="text-white">0</b></span>
-            </div>
-            <span id="sc-avg-f" class="font-black text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded">0 Pts</span>
-          </div>
-
-          <!-- ROW ONBOARD MODE -->
-          <div class="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl text-xs">
-            <span class="font-bold text-emerald-400 w-32">🟢 Onboard Mode</span>
-            <div class="flex gap-4 text-slate-300 font-mono">
-              <span>P1: <b id="sc-op1" class="text-white">0</b></span>
-              <span>P2: <b id="sc-op2" class="text-white">0</b></span>
-              <span>P3: <b id="sc-op3" class="text-white">0</b></span>
-            </div>
-            <span id="sc-avg-o" class="font-black text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded">0 Pts</span>
-          </div>
-        </div>
-
-        <!-- AREA FEEDBACK & TIPS -->
-        <div class="mt-4 bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs text-slate-300">
-          <div id="sc-modal-feedback">-</div>
-        </div>
-
-      </div>
-    </div>
-
 </script>
 
-  <!-- CUSTOM MODAL NOTIFIKASI (PART 4) -->
+  <!-- 1. CUSTOM MODAL NOTIFIKASI & AUDIT GALLERY -->
   <div id="custom-app-modal" class="fixed inset-0 modal-backdrop hidden flex items-center justify-center p-4 z-[300]">
-    <div class="bg-slate-900 border-2 border-slate-700 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4 animate-fade-in">
+    <div class="bg-slate-900 border-2 border-slate-700 rounded-3xl p-6 max-w-2xl w-full shadow-2xl text-center space-y-4 animate-fade-in">
       <div id="modal-icon-container" class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-inner"></div>
       <div>
         <h3 id="modal-title-text" class="text-base font-extrabold text-white leading-snug">Judul Modal</h3>
-        <p id="modal-body-text" class="text-xs text-slate-300 mt-2 leading-relaxed font-medium">Pesan notifikasi di sini.</p>
+        <div id="modal-body-text" class="text-xs text-slate-300 mt-2 leading-relaxed font-medium">Pesan notifikasi di sini.</div>
       </div>
       <div id="modal-btn-container" class="flex gap-2.5 pt-2"></div>
     </div>
   </div>
 
-<!-- Light-box / Magnifier Modal (Pastikan z-index z-[400] agar tampil di atas modal SOP) -->
-<div id="imageModal" class="fixed inset-0 z-[400] hidden bg-black/90 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-300" onclick="closeModal()">
-  <div class="relative max-w-4xl max-h-[90vh] w-full flex flex-col items-center justify-center" onclick="event.stopPropagation()">
-    <!-- Tombol Close -->
-    <button onclick="closeModal()" class="absolute -top-10 right-0 text-white text-3xl font-bold hover:text-amber-400 focus:outline-none cursor-pointer">&times;</button>
-    
-    <!-- Gambar Preview -->
-    <img id="modalImg" class="max-w-full max-h-[80vh] rounded-xl shadow-2xl object-contain border border-slate-700 transform transition-transform duration-300 scale-95" src="" alt="Preview SOP Utilitas">
-    
-    <!-- Judul / Caption -->
-    <p id="modalCaption" class="mt-3 text-white text-center font-bold text-sm bg-slate-900/80 px-4 py-1.5 rounded-full border border-slate-700"></p>
+  <!-- 2. MODAL SKILL CARD MATRIX EVALUATION -->
+  <div id="skill-card-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[250] flex items-center justify-center hidden p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl p-6 shadow-2xl relative">
+      <div class="flex items-start justify-between border-b border-slate-800 pb-4">
+        <div>
+          <h3 class="text-base font-black text-white flex items-center gap-2">💳 OFFICIAL BD SKILL CARD</h3>
+          <p id="sc-modal-name" class="text-sm font-bold text-amber-400 mt-1">-</p>
+          <p id="sc-modal-sub" class="text-xs text-slate-400">-</p>
+        </div>
+        <div class="text-right">
+          <div id="sc-modal-score" class="text-2xl font-black text-emerald-400">0</div>
+          <div id="sc-modal-status" class="mt-1 inline-block">-</div>
+          <button onclick="closeSkillCardModal()" class="block text-slate-500 hover:text-white mt-2 text-xs cursor-pointer ml-auto">✕ Tutup</button>
+        </div>
+      </div>
+
+      <div class="mt-4 space-y-2">
+        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Breakdown Performa 3 Mode Assessment</h4>
+        
+        <div class="flex items-center justify-between bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl text-xs">
+          <span class="font-bold text-rose-400 w-32">🔴 Rejected Mode</span>
+          <div class="flex gap-4 text-slate-300 font-mono">
+            <span>P1: <b id="sc-rp1" class="text-white">0</b></span>
+            <span>P2: <b id="sc-rp2" class="text-white">0</b></span>
+            <span>P3: <b id="sc-rp3" class="text-white">0</b></span>
+          </div>
+          <span id="sc-avg-r" class="font-black text-rose-400 bg-rose-500/20 px-2 py-0.5 rounded">0 Pts</span>
+        </div>
+
+        <div class="flex items-center justify-between bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl text-xs">
+          <span class="font-bold text-amber-400 w-32">🟡 Follow Up Mode</span>
+          <div class="flex gap-4 text-slate-300 font-mono">
+            <span>P1: <b id="sc-fp1" class="text-white">0</b></span>
+            <span>P2: <b id="sc-fp2" class="text-white">0</b></span>
+            <span>P3: <b id="sc-fp3" class="text-white">0</b></span>
+          </div>
+          <span id="sc-avg-f" class="font-black text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded">0 Pts</span>
+        </div>
+
+        <div class="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl text-xs">
+          <span class="font-bold text-emerald-400 w-32">🟢 Onboard Mode</span>
+          <div class="flex gap-4 text-slate-300 font-mono">
+            <span>P1: <b id="sc-op1" class="text-white">0</b></span>
+            <span>P2: <b id="sc-op2" class="text-white">0</b></span>
+            <span>P3: <b id="sc-op3" class="text-white">0</b></span>
+          </div>
+          <span id="sc-avg-o" class="font-black text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded">0 Pts</span>
+        </div>
+      </div>
+
+      <div class="mt-4 bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs text-slate-300">
+        <div id="sc-modal-feedback">-</div>
+      </div>
+    </div>
   </div>
-</div>
+
+  <!-- 3. LIGHTBOX / MAGNIFIER MODAL -->
+  <div id="imageModal" class="fixed inset-0 z-[400] hidden bg-black/90 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-300" onclick="closeModal()">
+    <div class="relative max-w-4xl max-h-[90vh] w-full flex flex-col items-center justify-center" onclick="event.stopPropagation()">
+      <button onclick="closeModal()" class="absolute -top-10 right-0 text-white text-3xl font-bold hover:text-amber-400 focus:outline-none cursor-pointer">&times;</button>
+      <img id="modalImg" class="max-w-full max-h-[80vh] rounded-xl shadow-2xl object-contain border border-slate-700 transform transition-transform duration-300 scale-95" src="" alt="Preview SOP Utilitas">
+      <p id="modalCaption" class="mt-3 text-white text-center font-bold text-sm bg-slate-900/80 px-4 py-1.5 rounded-full border border-slate-700"></p>
+    </div>
+  </div>
 
 </body>
-
-<!-- Light-box / Magnifier Modal (Pastikan z-index z-[400]) -->
-<div id="imageModal" class="fixed inset-0 z-[400] hidden bg-black/90 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-300" onclick="closeModal()">
-  <div class="relative max-w-4xl max-h-[90vh] w-full flex flex-col items-center justify-center" onclick="event.stopPropagation()">
-    <!-- Close Button -->
-    <button onclick="closeModal()" class="absolute -top-10 right-0 text-white text-3xl font-bold hover:text-amber-400 focus:outline-none">&times;</button>
-    <!-- Image Preview -->
-    <img id="modalImg" class="max-w-full max-h-[80vh] rounded-xl shadow-2xl object-contain border border-slate-700 transform transition-transform duration-300 scale-95" src="" alt="Preview SOP Utilitas">
-    <!-- Caption -->
-    <p id="modalCaption" class="mt-3 text-white text-center font-bold text-sm bg-slate-900/80 px-4 py-1.5 rounded-full border border-slate-700"></p>
-  </div>
-</div>
 </html>
